@@ -1,0 +1,158 @@
+  services:
+    api:
+      profiles:
+        - prod
+      container_name: client-gateway-api
+      build:
+        context: .
+        dockerfile: dev.Dockerfile
+      restart: always
+      env_file:
+        - .env
+      ports:
+        - "4000:4000"
+      depends_on:
+        postgres:
+          condition: service_healthy
+        migrate:
+          condition: service_completed_successfully
+        redis:
+          condition: service_healthy
+        otel-collector:
+          condition: service_started
+
+
+    postgres:
+      profiles:
+        - prod
+      image: postgres:16-alpine
+      container_name: client-gateway-db
+      restart: always
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: client-gateway
+      ports:
+        - "5433:5432"
+      volumes:
+        - pg_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
+
+    redis:
+      profiles:
+        - prod
+      image: redis:8.6-alpine
+      container_name: client-gateway-redis
+      restart: always
+      ports:
+        - "6380:6379"
+      volumes:
+        - redis_data:/data
+      command: ["redis-server", "--appendonly", "yes"]
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
+
+    otel-collector:
+      profiles:
+        - prod
+      image: otel/opentelemetry-collector-contrib:0.149.0
+      container_name: otel-collector
+      command: [ "--config=/etc/otel-collector.yaml" ]
+      volumes:
+        - ./otel-collector.yaml:/etc/otel-collector.yaml
+      ports:
+        - "4317:4317"
+      # depends_on:
+      #   vm:
+      #     condition: service_healthy
+      #   jaeger:
+      #     condition: service_healthy
+
+    # jaeger:
+    #   image: jaegertracing/all-in-one:1.49
+    #   container_name: jaeger
+    #   ports:
+    #     - "16686:16686"
+    #   environment:
+    #     COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    #   restart: unless-stopped
+    #   healthcheck:
+    #     test: [ "CMD", "wget", "--spider", "-q", "http://localhost:16686/" ]
+    #     interval: 10s
+    #     timeout: 5s
+    #     retries: 5
+
+    # vm:
+    #   container_name: victoriametrics
+    #   image: victoriametrics/victoria-metrics:latest
+    #   ports:
+    #     - "8428:8428"
+    #   volumes:
+    #     - vmdata:/victoria-metrics-data
+    #   command:
+    #     - "-storageDataPath=/victoria-metrics-data"
+    #     - "-retentionPeriod=6"
+    #   restart: unless-stopped
+    #   healthcheck:
+    #     test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8428/health" ]
+    #     interval: 10s
+    #     timeout: 5s
+    #     retries: 5
+
+    # node_exporter:
+    #   image: quay.io/prometheus/node-exporter:latest
+    #   container_name: node_exporter
+    #   command:
+    #     - '--path.rootfs=/host'
+    #   pid: host
+    #   restart: unless-stopped
+    #   volumes:
+    #     - '/:/host:ro,rslave'
+    test-postgres:
+      profiles:
+      - test
+      image: postgres:16-alpine
+      container_name: test-client-gateway-db
+      environment:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: postgres
+      ports:
+        - "5432:5432"
+      volumes:
+        - test_pg_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
+      restart: "no"
+
+    migrate:
+      profiles:
+        - prod
+      container_name: client-gateway-migrate
+      build:
+        context: .
+        dockerfile: Migrate.Dockerfile
+      environment:
+        GOOSE_DBSTRING: "postgres://postgres:postgres@postgres:5432/client-gateway?sslmode=disable"
+      depends_on:
+        postgres:
+          condition: service_healthy
+      restart: "no"
+
+  volumes:
+    test_pg_data:
+    pg_data:
+    redis_data:
+    # vmdata:

@@ -1,0 +1,34 @@
+app:
+  name: "gateway"
+  version: "v1.1.1"
+
+http:
+  host: localhost
+  port: 8080
+  maxHeaderBytes: 1
+  readTimeout: 10s
+  writeTimeout: 10s
+  bodyLimitBytes: 4
+  allowedOrigins:
+    - https://ya.ru/
+    - https://ya.ru2/
+    - https://ya3.ru/
+
+grpc:
+  readTimeout: 10s
+  writeTimeout: 10s
+  maxHeaderBytes: 1
+  host: 0.0.0.0
+  port: 44050
+
+postgres:
+  host: localhost
+  connectTimeout: 5s
+  maxConns: 10
+  minConns: 2
+  sslMode: "disable"
+
+redis:
+  host:
+  poolSize: 10
+  minIdleConns: 2

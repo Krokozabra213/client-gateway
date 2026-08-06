@@ -1,0 +1,47 @@
+app:
+  name: "client-gateway"
+  userCacheTTLMinutes: 15
+  encryptionKey: encryptionkey
+  hashingKey: hashingkey
+
+http:
+  host: "0.0.0.0"
+  port: 4000
+  maxHeaderBytes: 1
+  readTimeout: 10s
+  writeTimeout: 10s
+  bodyLimitBytes: 4
+  allowedOrigins:
+    - https://ya.ru/
+    - https://ya.ru2/
+    - https://ya3.ru/
+
+postgres:
+  host: postgres
+  port: 5432
+  user: postgres
+  password: postgres
+  dbName: client_gateway
+  connectTimeout: 5s
+  maxConns: 10
+  minConns: 2
+  sslMode: "disable"
+
+redis:
+  addr: redis:6379
+  password: test
+  database: 0
+  poolSize: 10
+  minIdleConns: 2
+
+slog:
+  structured: false
+
+payment:
+  addr: payment:44050
+
+balance:
+  addr: balance:44070
+
+order_product:
+  addr: order-product:44030
